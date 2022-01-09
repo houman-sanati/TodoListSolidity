@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { Card, Col, Container, Nav, Navbar, Row } from 'react-bootstrap';
+import { Button, Card, Col, Container, Form, Modal, Nav, Navbar, Row } from 'react-bootstrap';
 import Web3 from 'web3'
 import TodoList from './blockchain/build/contracts/TodoList.json'
 
@@ -8,16 +8,39 @@ const App = () => {
   const [account, setAccount] = useState();
   const [todoList, setTodoList] = useState([]);
 
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [todoTitle, setTodoTitle] = useState('')
+  const [todoContent, setTodoContent] = useState('')
+
+  const [contractInstance, setContractInstance] = useState(null)
+
+  const [submitInProgress, setSubmitInProgress] = useState(false)
+
   const load = async () => {
     const web3 = new Web3(Web3.givenProvider || 'http://localhost:7545');
     const accounts = await web3.eth.requestAccounts();
     setAccount(accounts[0]);
 
-    const contractInstance = new web3.eth.Contract(TodoList.abi, '0x87CcC9473521043558Cd4Cb99c366687Af5857D2');
+    const tempContractInstance = new web3.eth.Contract(TodoList.abi, '0x569b6D66DFEdC06Dc2Dc309b62DCbB2E861ea8C9');
 
 
+    const counter = await tempContractInstance.methods.taskCount().call();
+
+    const tempList = []
+    for (var i = 1; i <= counter; i++) {
+      const todo = await tempContractInstance.methods.tasks(i).call();
+      tempList.push(todo)
+    }
+    setTodoList(tempList)
+    setContractInstance(tempContractInstance)
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  const loadList = async () => {
     const counter = await contractInstance.methods.taskCount().call();
-
     const tempList = []
     for (var i = 1; i <= counter; i++) {
       const todo = await contractInstance.methods.tasks(i).call();
@@ -26,18 +49,49 @@ const App = () => {
     setTodoList(tempList)
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  const onSubmit = () => {
+    setSubmitInProgress(true)
+    contractInstance.methods.createTask(todoTitle, todoContent).call().then(result => {
+      console.log(result)
+      setSubmitInProgress(false)
+      setShowAddModal(false)
+      setTodoTitle('')
+      setTodoContent('')
+      loadList()
+    })
+  }
 
   return (
     <>
+      <Modal show={showAddModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Todo Item</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group>
+              <Form.Label>Title</Form.Label>
+              <Form.Control value={todoTitle} onChange={(e) => setTodoTitle(e.target.value)} />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Content</Form.Label>
+              <Form.Control value={todoContent} onChange={(e) => setTodoContent(e.target.value)} />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={onSubmit}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       <Navbar bg="dark" variant="dark">
         <Container>
           <Navbar.Brand href="#home">TodoList</Navbar.Brand>
           <Nav className="me-auto">
-            <Nav.Link>Todos</Nav.Link>
-            <Nav.Link>Add</Nav.Link>
+            <Nav.Link onClick={() => setShowAddModal(!showAddModal)}>Add</Nav.Link>
           </Nav>
           <Nav>
             <Nav.Link>{account}</Nav.Link>
@@ -48,9 +102,10 @@ const App = () => {
         <Card className="my-3">
           <Card.Body>
             <Row>
-              <Col md={4}>Id</Col>
-              <Col md={4}>Content</Col>
-              <Col md={4}>Completed</Col>
+              <Col md={3}>Id</Col>
+              <Col md={3}>Title</Col>
+              <Col md={3}>Content</Col>
+              <Col md={3}>Completed</Col>
             </Row>
           </Card.Body>
         </Card>
@@ -60,9 +115,10 @@ const App = () => {
               <Card>
                 <Card.Body>
                   <Row>
-                    <Col md={4}>{item.id}</Col>
-                    <Col md={4}>{item.content}</Col>
-                    <Col md={4}>{item.completed ? '✔' : '❌'}</Col>
+                    <Col md={3}>{item.id}</Col>
+                    <Col md={3}>{item.title}</Col>
+                    <Col md={3}>{item.content}</Col>
+                    <Col md={3}>{item.completed ? '✔' : '❌'}</Col>
                   </Row>
                 </Card.Body>
               </Card>

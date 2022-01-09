@@ -5,6 +5,7 @@ contract TodoList {
 
     struct Task {
         uint256 id;
+        string title;
         string content;
         bool completed;
     }
@@ -14,13 +15,13 @@ contract TodoList {
     event TaskCreated(uint256 id, string content, bool completed);
 
     constructor() public {
-        createTask("This is task number 1");
-        createTask("This is task number 2");
+        createTask("title 1", "This is task number 1");
+        createTask("title 2", "This is task number 2");
     }
 
-    function createTask(string memory _content) public {
+    function createTask(string memory _title, string memory _content) public {
         taskCount++;
-        tasks[taskCount] = Task(taskCount, _content, false);
+        tasks[taskCount] = Task(taskCount, _title, _content, false);
         emit TaskCreated(taskCount, _content, false);
     }
 }
