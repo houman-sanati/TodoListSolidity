@@ -21,7 +21,7 @@ const App = () => {
     const accounts = await web3.eth.requestAccounts();
     setAccount(accounts[0]);
 
-    const tempContractInstance = new web3.eth.Contract(TodoList.abi, '0x569b6D66DFEdC06Dc2Dc309b62DCbB2E861ea8C9');
+    const tempContractInstance = new web3.eth.Contract(TodoList.abi, '0x378e111799EAe4BfB28aCcA298b046B7F44959Ae');
 
 
     const counter = await tempContractInstance.methods.taskCount().call();
@@ -37,6 +37,10 @@ const App = () => {
 
   useEffect(() => {
     load()
+    return () => {
+      setAccount(null)
+      setContractInstance(null)
+    }
   }, [])
 
   const loadList = async () => {
@@ -49,10 +53,13 @@ const App = () => {
     setTodoList(tempList)
   }
 
-  const onSubmit = () => {
+  const handleCheck = (id) => {
+    contractInstance.methods.toggleCompleted(id).send({ from: account }).then(result => loadList())
+  }
+
+  const onSubmit = (e) => {
     setSubmitInProgress(true)
-    contractInstance.methods.createTask(todoTitle, todoContent).call().then(result => {
-      console.log(result)
+    contractInstance.methods.createTask(todoTitle, todoContent).send({ from: account }).then(result => {
       setSubmitInProgress(false)
       setShowAddModal(false)
       setTodoTitle('')
@@ -82,7 +89,7 @@ const App = () => {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={onSubmit}>
-            Save Changes
+            Submit
           </Button>
         </Modal.Footer>
       </Modal>
@@ -118,7 +125,9 @@ const App = () => {
                     <Col md={3}>{item.id}</Col>
                     <Col md={3}>{item.title}</Col>
                     <Col md={3}>{item.content}</Col>
-                    <Col md={3}>{item.completed ? '✔' : '❌'}</Col>
+                    <Col md={3}>
+                      <Form.Check checked={item.completed} onClick={() => handleCheck(item.id)} />
+                    </Col>
                   </Row>
                 </Card.Body>
               </Card>
